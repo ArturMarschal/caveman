@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.0/jquery.min.js"></script>
+		<script type="text/javascript" src="js/caveman.js" ></script>
+		<title>CaveMan</title>
+	</head>
+	<body>
+		<div id="info" class="info"></div>
+		<div class="center">
+			<ul class="tab">
+				<!-- Tab pages -->
+				<li id="liWorld" style="display: none;"><a href="#" class="tablinks active" onclick="openTab(event, 'World')">World</a></li>
+				<li id="liGather" style="display: none;"><a href="#" class="tablinks" onclick="openTab(event, 'Gather')">Gather</a></li>
+				<li id="liEnergy" style="display: none;"><a href="#" class="tablinks" onclick="openTab(event, 'Energy')">Energy</a></li>
+				<li id="liHunt" style="display: none;"><a href="#" class="tablinks" onclick="openTab(event, 'Hunt')">Hunt</a></li>
+				<li id="liFish" style="display: none;"><a href="#" class="tablinks" onclick="openTab(event, 'Fishing')">Fishing</a></li>
+				<li id="liSamu" style="display: none;"><a href="#" class="tablinks" onclick="openTab(event, 'Samu')">Samu</a></li>
+				<li id="liCamp" style="display: none;"><a href="#" class="tablinks" onclick="openTab(event, 'Camp')">Camp</a></li>
+				<li id="liCave" style="display: none;"><a href="#" class="tablinks" onclick="openTab(event, 'Cave')">Cave</a></li>
+			</ul>
+			<div id="World" class="tabcontent">
+				<div id="pbtnExplore" class="progressButton">
+					<button id="btnExplore" type="button" class="btnStyle" onclick="clickExplore()">Explore</button>
+					<div class="progressBar">
+						<span id="pbExplore" style="width: 0%;"></span>
+					</div>
+				</div>
+				<div id="pbtnEvolve" class="progressButton">
+					<button id="btnEvolve" type="button" class="btnStyle" onclick="clickEvolve()">Evolve</button>
+					<div class="progressBar">
+						<span id="pbEvolve" style="width: 0%;"></span>
+					</div>
+				</div>
+				<div id="pbtnMove" class="progressButton">
+					<button id="btnMove" type="button" class="btnStyle" onclick="clickMove()">Move</button>
+					<div class="progressBar">
+						<span id="pbMove" style="width: 0%;"></span>
+					</div>
+				</div>
+			</div>
+			<div id="Gather" class="tabcontent">
+				<div id="pbtnSearchberry" class="progressButton">
+					<button id="btnSearchberry" type="button" class="btnStyle" onclick="clickSearchberry()">Search Berry</button>
+					<div class="progressBar">
+						<span id="pbSearchberry" style="width: 0%;"></span>
+					</div>
+				</div>	
+				<div id="pbtnSearchwood" class="progressButton">
+					<button id="btnSearchwood" type="button" class="btnStyle" onclick="clickSearchwood()">Search Wood</button>
+					<div class="progressBar">
+						<span id="pbSearchwood" style="width: 0%;"></span>
+					</div>
+				</div>	
+			</div>
+			<div id="Hunt" class="tabcontent">
+			</div>
+			<div id="Fishing" class="tabcontent">
+			</div>
+			<div id="Samu" class="tabcontent">
+			</div>
+			<div id="Camp" class="tabcontent">
+			</div>
+			<div id="Cave" class="tabcontent">
+			</div>
+			<div id="Energy" class="tabcontent">
+				<div id="pbtnEatberry" class="progressButton">
+					<button id="btnEatberry" type="button" class="btnStyle" onclick="clickEatberry()">Eat Berry</button>
+					<div class="progressBar">
+						<span id="pbEatberry" style="width: 0%;"></span>
+					</div>
+				</div>
+				<div id="pbtnEatmeat" class="progressButton">
+					<button id="btnEatmeat" type="button" class="btnStyle" onclick="clickEatmeat()">Eat Meat</button>
+					<div class="progressBar">
+						<span id="pbEatmeat" style="width: 0%;"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="inventory" class="inventory"></div>
+	</body>
+</html>
