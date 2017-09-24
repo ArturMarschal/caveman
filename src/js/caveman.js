@@ -1,530 +1,266 @@
 //////////////////////////////////////
-/////      Initialization       //////
+/////       Declarations        //////
 //////////////////////////////////////
-var gameData = {};
-$( document ).ready(function() {
-    initGameStrings();
-	initDomObjects();
-	initGameObjects();
-	updateInventory();
-	setTimeout(updateInfo, 1500);
-	setTimeout(updateInfo, 5000);
-	setTimeout(showDomElem, 5000, $("#liWorld")[0], true);
-	setTimeout(showDomElem, 5000, $("#World")[0], true);
-});
-
-function initGameStrings(){
-	gameData.gameStringList = [];
-	var gameStringList = gameData.gameStringList;
-	gameStringList[0] = "Samu is awaken!";
-	gameStringList[1] = "Samu would like to explore the world...";
-	gameStringList[2] = "Samu is getting very hungry now...";
-	gameStringList[3] = "Samu would like to eat something...anything.";
-	gameStringList[4] = "What does Samu see over there? Is this edible?";
-	gameStringList[5] = "Hmm... Berry! Samu need some more to get energy for explorations";
-	gameStringList[6] = "What a nice glade... Samu shall build his camp here...";
-	gameStringList[7] = "...need wood, a lot...";
-	gameStringList[8] = "Samu";
-	gameStringList[9] = "";
-	gameStringList[6] = "";
-	gameStringList[7] = "";
-	gameStringList[8] = "";
-	gameStringList[9] = "";
-	gameStringList[6] = "";
-	gameStringList[7] = "";
-	gameStringList[8] = "";
-	gameStringList[100] = "Samu need something before do this...";
-}
-
-function initDomObjects(){
-	gameData.inventoryTab = $("#inventory")[0];
-	gameData.infoTab = $("#info")[0];
-	
-	gameData.btnExplore = $("#btnExplore")[0];
-	gameData.btnExplore.myClickCount = 0;
-	gameData.btnExplore.myDuration = 1000;
-	gameData.barExplore = $("#pbExplore")[0];
-	gameData.barExplore.myValue = 0;
-	
-	gameData.btnEvolve = $("#btnEvolve")[0];
-	gameData.barEvolve = $("#pbEvolve")[0];
-	gameData.barEvolve.myValue = 0;
-	
-	gameData.btnMove = $("#btnMove")[0];
-	gameData.barMove = $("#pbMove")[0];
-	gameData.barMove.myValue = 0;
-	
-	gameData.btnSearchberry = $("#btnSearchberry")[0];
-	gameData.btnSearchberry.myDuration = 500;
-	gameData.barSearchberry = $("#pbSearchberry")[0];
-	gameData.barSearchberry.myValue = 0;
-	
-	gameData.btnEatberry = $("#btnEatberry")[0];
-	gameData.btnEatberry.myDuration = 500;
-	gameData.barEatberry = $("#pbEatberry")[0];
-	gameData.barEatberry.myValue = 0;
-	
-	gameData.btnEatmeat = $("#btnEatmeat")[0];
-	gameData.btnEatmeat.myDuration = 500;
-	gameData.barEatmeat = $("#pbEatmeat")[0];
-	gameData.barEatmeat.myValue = 0;
-	
-	gameData.btnSearchwood = $("#btnSearchwood")[0];
-	gameData.btnSearchwood.myDuration = 500;
-	gameData.barSearchwood= $("#pbSearchwood")[0];
-	gameData.barSearchwood.myValue = 0;
-	
-	// Set default active
-	showDomElem($("#pbtnExplore")[0], true);
-	showDomElem($("#pbtnEvolve")[0], false);
-	showDomElem($("#pbtnSearchwood")[0], false);
-	showDomElem($("#pbtnMove")[0], false);
-	showDomElem($("#pbtnEatmeat")[0], false);
-}
-
-function initGameObjects(){
-	gameData.intervalTick = 100;
-	gameData.stringCounter = 0;
-	gameData.steps = {
-		exploreCount: 0,
-		explorePrice: 0,
-		isEnergyTab: false,
-		isWoodButton: false,
-		isFirstBerry: false
+function Layout(){
+	var tabs = {};
+	var btns = {};
+	var interval = 25;
+	var elTabHeader = document.getElementById("gameTabs");
+	var elTabContent = document.getElementById("game");
+	var elInfo = document.getElementById("info");
+	var activeTab = "";
+	this.createLayout = function(config){
+		for (tab in config.tabs){
+			tabs[config.tabs[tab].name] = new Tab(config.tabs[tab]);
+			for (btn in config.tabs[tab].buttons){
+				btns[config.tabs[tab].buttons[btn].name] = new ProgressButton(
+					config.tabs[tab].buttons[btn],
+					tabs[config.tabs[tab].name]);
+			}
+		}
 	};
-	gameData.inventory = {};
-	gameData.inventory["Berry"] = {
-		name: "Berry",
-		enabled: false,
-		count: 0,
-		limit: 20,
-		price: [{
-			need: [],
-			produce: 20,
-			button: gameData.btnSearchberry
-		}]
+	this.revealTab = function(tabName, activate = false){
+		if (activate){
+			this.tabClick(tabName);
+		}
+		tabs[tabName].appendTo(elTabHeader, elTabContent);
 	};
-	gameData.inventory["Energy"] = {
-		name: "Energy",
-		enabled: false,
-		count: 0,
-		limit: 10,
-		price: [{
-			need: [{
-				name: "Berry",
-				count: 1 // TEST 10
-			}],
-			produce: 1,
-			button: gameData.btnEatberry
-		},{
-			need: [{
-				name: "Meat",
-				count: 1 // TEST 10
-			}],
-			produce: 5,
-			button: gameData.btnEatmeat	
-		}]
+	this.revealButton = function(btnName){
+		btns[btnName].revealButton();
 	};
-	gameData.inventory["Wood"] = {
-		name: "Wood",
-		enabled: false,
-		count: 0,
-		limit: 10,
-		price: [{
-			need: [{
-				name: "Energy",
-				count: 2 // TEST 10
-			}],
-			produce: 1,
-			button: gameData.btnSearchwood
-		}]
+	this.tabClick = function(tabName){
+		if (activeTab === tabName){
+			return;
+		}
+		if (activeTab !== ""){
+			tabs[activeTab].deactivate();
+		}
+		activeTab = tabName;
+		tabs[activeTab].activate();
 	};
-	gameData.inventory["Stone"] = {
-		name: "Wood",
-		enabled: false,
-		count: 0,
-		limit: 10
+	this.buttonClick = function(btnName){
+		var btn = btns[btnName];
+		var handler = setInterval(layout.doProgress, interval, btn);
+		btn.startProgress(handler);
 	};
-	gameData.inventory["Club"] = {
-		name: "Wooden Club",
-		enabled: false,
-		count: 0,
-		limit: 10
+	this.doProgress = function(btn){
+		if (btn.isReady(interval)){
+			clearInterval(btn.finishProgress());
+		}
 	};
-	gameData.inventory["Meat"] = {
-		name: "Meat",
-		enabled: false,
-		count: 0,
-		limit: 10
+	this.updateStatus = function(){
+		for (i in btns){
+			if (btns[i].isVisible){
+				btns[i].updateStatus();
+			}
+		}
 	};
-	gameData.inventory["Bone"] = {
-		name: "Bone",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Blood"] = {
-		name: "Blood",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Tendril"] = {
-		name: "Tendril",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Paleo"] = {
-		name: "Paleolithic",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Leather"] = {
-		name: "Leather",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Spear"] = {
-		name: "Spear",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Sling"] = {
-		name: "Sling",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["BSpear"] = {
-		name: "Bone Spear",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Water"] = {
-		name: "Water",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Mud"] = {
-		name: "Mud",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["LFlask"] = {
-		name: "Leather Flask",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Salt"] = {
-		name: "Salt",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Fire"] = {
-		name: "Fire",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["RMeat"] = {
-		name: "Roast Meat",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Soup"] = {
-		name: "Soup",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Flute"] = {
-		name: "Flute",
-		enabled: false,
-		count: 0,
-		limit: 10
-	};
-	gameData.inventory["Feather"] = {
-		name: "Feather",
-		enabled: false,
-		count: 0,
-		limit: 10
+	this.debug = function(){
+		return {tabs: tabs, buttons:btns};
 	};
 }
 
-//////////////////////////////////////
-/////    Button click events    //////
-//////////////////////////////////////
-function clickExplore(){
-	gameData.inventory["Energy"].count -= gameData.steps.explorePrice;
-	checkButtonAvailable();
-	disableButton(gameData.btnExplore, true);
-	gameData.barExplore.intervalId = setInterval(progressOn, gameData.intervalTick, gameData.barExplore, gameData.btnExplore.myDuration, doExplore);
-	updateInventory();
-}
-
-function clickEvolve(){
-	checkButtonAvailable();
-	disableButton(gameData.btnEvolve, true);
-	gameData.barEvolve.intervalId = setInterval(progressOn, gameData.intervalTick, gameData.barEvolve, 1000, doEvolve);
-}
-
-function clickMove(){
-	checkButtonAvailable();
-	disableButton(gameData.btnMove, true);
-	gameData.barMove.intervalId = setInterval(progressOn, gameData.intervalTick, gameData.barMove, 1000, doMove);
-}
-
-function clickSearchberry(){
-	checkButtonAvailable();
-	disableButton(gameData.btnSearchberry, true);
-	gameData.barSearchberry.intervalId = setInterval(progressOn, gameData.intervalTick, gameData.barSearchberry,
-													gameData.btnSearchberry.myDuration, doSearchberry);
-	setTimeout(addToInventory, gameData.btnSearchberry.myDuration, gameData.btnSearchberry);
-	if (!gameData.steps.isFirstBerry){
-		gameData.steps.isFirstBerry = true;
-		updateInfo();
+function Tab(config){
+	var tabName = config.name;
+	var tabLink = document.createElement("a");
+	var tabHeader = document.createElement("li");
+	var tabContent = document.createElement("div");
+	tabLink.setAttribute("href", "#");
+	tabLink.setAttribute("class", "tablinks");
+	tabLink.innerHTML = tabName;
+	tabLink.onclick = function(){layout.tabClick(this.innerHTML);};
+	tabHeader.appendChild(tabLink);
+	tabContent.setAttribute("class", "tabcontent");
+	tabContent.style.display = "none";
+	this.activate = function(){
+		tabContent.style.display = "block";
+		tabLink.setAttribute("class", "tablinks active");
+	};
+	this.deactivate = function(){
+		tabContent.style.display = "none";
+		tabLink.setAttribute("class", "tablinks");
+	};
+	this.appendTo = function(parentHeader, parentContent){
+		parentHeader.appendChild(tabHeader);
+		parentContent.appendChild(tabContent);
+	};
+	this.appendAction = function(actionBtn){
+		tabContent.appendChild(actionBtn);
 	}
 }
 
-function clickEatberry(){
-	subFromInventory(gameData.btnEatberry);
-	checkButtonAvailable();
-	disableButton(gameData.btnEatberry, true);
-	gameData.barEatberry.intervalId = setInterval(progressOn, gameData.intervalTick, gameData.barEatberry, gameData.btnEatberry.myDuration, doEatberry);
-	setTimeout(addToInventory, gameData.btnEatberry.myDuration, gameData.btnEatberry);
-}
-
-function clickSearchwood(){
-	subFromInventory(gameData.btnSearchwood);
-	checkButtonAvailable();
-	disableButton(gameData.btnSearchwood, true);
-	gameData.barSearchwood.intervalId = setInterval(progressOn, gameData.intervalTick, gameData.barSearchwood,
-													gameData.btnSearchwood.myDuration, doSearchwood);
-	setTimeout(addToInventory, gameData.btnSearchwood.myDuration, gameData.btnSearchwood);
-}
-
-//////////////////////////////////////
-/////   Finished button events  //////
-//////////////////////////////////////
-function doExplore(){
-	var btn = gameData.btnExplore;
-	if (gameData.steps.exploreCount == 0){
-		btn.myDuration = 1000;
-		updateInfo();
-	} else if (gameData.steps.exploreCount == 1){
-		btn.myDuration = 1000;
-		updateInfo();
-	} else if (gameData.steps.exploreCount == 2){
-		btn.myDuration = 2000;
-		gameData.steps.explorePrice = 5;
-		updateInfo();
-		gameData.inventory["Berry"].enabled = true;
-		showDomElem($("#liGather")[0], true);
-		showDomElem($("#pbtnSearchberry")[0], true);
-		updateInventory();
-	} else if (gameData.steps.exploreCount == 3){
-		btn.myDuration = 2000;
-		updateInfo();
-		
-	}
-	gameData.steps.exploreCount++;
-	checkButtonAvailable();
-}
-
-function doEvolve(){
-	disableButton(gameData.btnEvolve, false);
-}
-
-function doMove(){
-	disableButton(gameData.btnMove, false);
-}
-
-function doSearchberry(){
-	if (!gameData.steps.isEnergyTab && checkItemAvailable(gameData.inventory["Energy"])){
-		showDomElem($("#liEnergy")[0], true);
-		gameData.steps.isEnergyTab = true;
-		gameData.inventory["Energy"].enabled = true;
-	}
-	checkButtonAvailable();
-	updateInventory();
-}
-
-function doEatberry(){
-	if (!gameData.steps.isWoodButton && checkItemAvailable(gameData.inventory["Wood"])){
-		showDomElem($("#pbtnSearchwood")[0], true);
-		gameData.steps.isWoodButton = true;
-		gameData.inventory["Wood"].enabled = true;
-	}
-	checkButtonAvailable();
-	updateInventory();
-}
-
-function doSearchwood(){
-	checkButtonAvailable();
-	updateInventory();
-}
-
-//////////////////////////////////////
-/////      Common functions     //////
-//////////////////////////////////////
-
-// Disable/enable buttons
-function disableButton(btn, disable){
-	if (disable){
+function ProgressButton(btnConfig, _tab){
+	// Properties
+	var tab = _tab;
+	var name = btnConfig.name;
+	var maxTime = btnConfig.time;
+	var needs = btnConfig.needs;
+	var produces = btnConfig.produces;
+	// Doms
+	var content = document.createElement("div");
+	var btn = document.createElement("button");
+	var pBarContent = document.createElement("div");
+	var pBar = document.createElement("span");
+	// Animation related
+	var handler = null;
+	var progress = 0;
+	var inProgress = false;
+	pBar.style.width = "0%";
+	pBarContent.setAttribute("class", "progressBar");
+	pBarContent.appendChild(pBar);
+	btn.setAttribute("type", "button");
+	btn.setAttribute("class", "btnStyle");
+	btn.innerHTML = name;
+	btn.onclick = function(){layout.buttonClick(this.innerHTML);};
+	content.setAttribute("class", "progressButton");
+	content.appendChild(btn);
+	content.appendChild(pBarContent);
+	this.isVisible = false;
+	this.revealButton = function(){
+		this.isVisible = true;
+		tab.appendAction(content);
+	};
+	this.updateStatus = function(){
+		if (inProgress){
+			return;
+		}
+		var fulfillNeeds = true;
+		for (i in needs){
+			if (!inventory.canFulfillNeed(needs[i].item, needs[i].amount)){
+				fulfillNeeds = false;
+			}
+		}
+		var canProduce = produces.length == 0;
+		for (i in produces){
+			if (inventory.canProduceMore(produces[i].item)){
+				canProduce = true;
+			}
+		}
+		if (canProduce && fulfillNeeds){
+			btn.disabled = false;
+			btn.setAttribute("class", "btnStyle");
+		}else{			
+			btn.disabled = true;
+			btn.setAttribute("class", "btnStyleDisabled");
+		}
+	};
+	this.startProgress = function(_handler){
+		inProgress = true;
+		for (i in needs){
+			inventory.decreaseItem(needs[i].item, needs[i].amount);
+		}
+		inventory.updateInventory();
+		handler = _handler;
+		progress = 0;
 		btn.disabled = true;
-		btn.className = "btnStyleDisabled";
-	}
-	else{
-		btn.disabled = false;
-		btn.className = "btnStyle";
-	}
-}
-
-// Show/hide html divs
-function showDomElem(elem, show){
-	if (show){
-		elem.style.display = "block";
-	}
-	else{
-		elem.style.display = "none";
-	}
-}
-
-// Returns the String form of an item
-function itemToString(item){
-	return item.name + ": " + item.count + "/" + item.limit;
-}
-
-// Increases the count of the item with the produced value
-function addToInventory(button){
-	var key, i;
-	for (key in gameData.inventory){
-		item = gameData.inventory[key];
-		if (item.enabled){
-			for (i = 0; i < item.price.length; i++){
-				if (item.price[i].button == button){
-					item.count += item.price[i].produce;
-				}
-			}
-		}
-	}
-	updateInventory();
-}
-
-// Reduces ammount in regards the prices
-function subFromInventory(button){
-	var key, i, j;
-	for (key in gameData.inventory){
-		item = gameData.inventory[key];
-		if (item.enabled){
-			for (i = 0; i < item.price.length; i++){
-				if (item.price[i].button == button){
-					for (j = 0; j < item.price[i].need.length; j++){
-						gameData.inventory[item.price[i].need[j].name].count -= item.price[i].need[j].count;
-					}
-				}
-			}
-		}
-	}
-	updateInventory();
-}
-
-// Checks if item available
-function checkItemAvailable(item){
-	var i, j, isAvailable;
-	for (i = 0; i < item.price.length; i++){
-		isAvailable = true;
-		for (j = 0; j < item.price[i].need.length; j++){
-			if (gameData.inventory[item.price[i].need[j].name].count < item.price[i].need[j].count){
-				isAvailable = false;
-			}
-		}
-		if (isAvailable){
+		btn.setAttribute("class", "btnStyleDisabled");
+	};
+	this.isReady = function(interval){
+		progress += interval;
+		pBar.style.width = "" + (progress / maxTime * 100) + "%";
+		if (progress > maxTime){
 			return true;
 		}
-	}
-	return false;
+		return false;
+	};
+	this.finishProgress = function(){
+		inProgress = false;
+		for (i in produces){
+			inventory.increaseItem(produces[i].item, produces[i].amount);
+		}
+		inventory.updateInventory();
+		pBar.style.width = "0%";
+		return handler;
+	};
 }
 
-// Enables buttons if possible
-function checkButtonAvailable(){
-	var key, i, j, isAvailable;
-	for (key in gameData.inventory){
-		item = gameData.inventory[key];
-		if (item.enabled && item.count < item.limit){
-			for (i = 0; i < item.price.length; i++){
-				isAvailable = true;
-				for (j = 0; j < item.price[i].need.length; j++){
-					if (gameData.inventory[item.price[i].need[j].name].count < item.price[i].need[j].count){
-						isAvailable = false;
-					}
-				}
-				disableButton(item.price[i].button, !isAvailable);
+function Inventory(){
+	var elInventory = document.getElementById("inventory");
+	var inventory = {
+		Level:  {amount: 0, max:100, enabled: true},
+		Berry:  {amount: 0, max:100, enabled: true},
+		Energy: {amount: 10, max:100, enabled: true},
+		Wood:   {amount: 0, max:100, enabled: true}
+	};
+	this.increaseItem = function(item, amount){
+		inventory[item].amount = Math.min(inventory[item].max, inventory[item].amount + amount);
+	};
+	this.decreaseItem = function(item, amount){
+		inventory[item].amount -= amount;
+	};
+	this.canFulfillNeed = function(item, amount){
+		return inventory[item].amount >= amount;
+	};
+	this.canProduceMore = function(item){
+		return inventory[item].amount < inventory[item].max;
+	};
+	this.updateInventory = function(){
+		var invText = "";
+		for (var item in inventory){
+			if (inventory[item].enabled){
+				invText += item + ": " + inventory[item].amount + "/" + inventory[item].max + "<br>";
 			}
 		}
-	}
-	disableButton(gameData.btnExplore, gameData.steps.explorePrice > gameData.inventory["Energy"].count);
+		elInventory.innerHTML = invText;
+		layout.updateStatus();
+	};
 }
 
-// Updates the inventory
-function updateInventory(){
-	var invText = "";
-	for (var key in gameData.inventory){
-		if (gameData.inventory[key].enabled){
-			invText += itemToString(gameData.inventory[key]) + "<br>";
+function GameConfig(){
+	var config = {
+		tabs: [
+		{
+			name: "World",
+			buttons: [
+			{
+				name: "Explore",
+				time: 1000,
+				needs: [],
+				produces: []
+			}
+			]
+		},{
+			name: "Gather",
+			buttons: [
+			{
+				name: "Search berry",
+				time: 1000,
+				needs: [],
+				produces: [{amount:1, item:"Berry"}]
+			},{
+				name: "Search wood",
+				time: 2000,
+				needs: [{amount:1, item:"Energy"}],
+				produces: [{amount:1, item:"Wood"}]
+			}
+			]
 		}
-	}
-	gameData.inventoryTab.innerHTML = invText;
+		]
+	};
+	this.getConfig = function(){
+		return config;
+	};
 }
 
-// Adds gameString to the info panel with specified index, color can be "simple", "bold", "alert"
-function updateInfo(index, color){
-	var log = gameData.gameStringList[index];
-	var logHtml = "<p class=\"" + color + "\">" + log + "</p>";
-	gameData.infoTab.innerHTML = logHtml + gameData.infoTab.innerHTML;
-}
+var layout;
+var config = new GameConfig();
+var debug;
+var inventory;
+$(function(){
+	inventory = new Inventory();
+	layout = new Layout();
+	layout.createLayout(config.getConfig());
+	debug = layout.debug();
+	layout.revealTab("World", true);
+	layout.revealTab("Gather");
+	layout.revealButton("Search wood");
+	layout.revealButton("Search berry");
+	layout.revealButton("Explore");
+})
+//////////////////////////////////////
+/////      Initialization       //////
+//////////////////////////////////////
 
-// Adds gameString to the info panel, uses next from the story
-function updateInfo(){
-	var color = "bold";
-	var log = gameData.gameStringList[gameData.stringCounter++];
-	var logHtml = "<p class=\"" + color + "\">" + log + "</p>";
-	gameData.infoTab.innerHTML = logHtml + gameData.infoTab.innerHTML;
-}
 
-// Progress bar setter
-function progressOn(bar, timeout, doAction){
-	bar.myValue += gameData.intervalTick;
-	if (bar.myValue > timeout){
-		bar.myValue = 0;
-		clearInterval(bar.intervalId);
-		doAction();
-	}
-	bar.style.width = "" + bar.myValue / timeout * 100 + "%";
-}
 
-// Open tabs
-function openTab(evt, tabName){
-	var i, tabcontent, tablinks;
-	tabcontent = document.getElementsByClassName("tabcontent");
-	for(i = 0; i < tabcontent.length; i++){
-		tabcontent[i].style.display = "none";
-	}
-	tablinks = document.getElementsByClassName("tablinks");
-	for(i = 0; i < tablinks.length; i++){
-		tablinks[i].className = tablinks[i].className.replace(" active", "");
-	}
-	document.getElementById(tabName).style.display = "block";
-    evt.currentTarget.className += " active";
-}
 

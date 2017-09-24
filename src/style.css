@@ -46,7 +46,7 @@ div.progressBar{
 	float: right;
 	border: 2px solid #000;
 	box-sizing: border-box;
-	width: 50%;
+	width: 49%;
 	height: 30px;
 	background-color: white;
 }
@@ -92,7 +92,7 @@ div.tabcontent {
 
 button.btnStyle{
 	background-color: white;
-	width: 50%;
+	width: 49%;
 	height: 30px;
 	border: 2px solid #000;
 	color: black;
@@ -107,7 +107,7 @@ button.btnStyle:hover{
 }
 button.btnStyleDisabled{
 	background-color: black;
-	width: 50%;
+	width: 49%;
 	height: 30px;
 	border: 2px solid #000;
 	color: #ccc;
