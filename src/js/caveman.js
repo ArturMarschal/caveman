@@ -7,7 +7,6 @@ function Layout(){
 	var interval = 25;
 	var elTabHeader = document.getElementById("gameTabs");
 	var elTabContent = document.getElementById("game");
-	var elInfo = document.getElementById("info");
 	var activeTab = "";
 	this.createLayout = function(config){
 		for (tab in config.tabs){
@@ -28,6 +27,12 @@ function Layout(){
 	this.revealButton = function(btnName){
 		btns[btnName].revealButton();
 	};
+	this.updateButton = function(btnUpdate){
+		btns[btnUpdate.name].updateParameters(btnUpdate);
+	};
+	this.enableButton = function(btnName){
+		btns[btnName].enableButton();
+	};
 	this.tabClick = function(tabName){
 		if (activeTab === tabName){
 			return;
@@ -40,8 +45,13 @@ function Layout(){
 	};
 	this.buttonClick = function(btnName){
 		var btn = btns[btnName];
+		var layout = engine.getLayout();
 		var handler = setInterval(layout.doProgress, interval, btn);
 		btn.startProgress(handler);
+	};
+	this.setHint = function(hint){
+		var btn = btns["Explore"];
+		btn.setHint(hint);
 	};
 	this.doProgress = function(btn){
 		if (btn.isReady(interval)){
@@ -50,25 +60,38 @@ function Layout(){
 	};
 	this.updateStatus = function(){
 		for (i in btns){
-			if (btns[i].isVisible){
-				btns[i].updateStatus();
-			}
+			btns[i].updateStatus();
 		}
 	};
+	// TODO: Remove debug feature
 	this.debug = function(){
 		return {tabs: tabs, buttons:btns};
 	};
 }
 
+function Information(){
+	var elInfo = document.getElementById("info");
+	this.logInformation = function(message, style){
+		var p = document.createElement("p");
+		p.innerHTML = message;
+		p.style.class = style;
+		elInfo.insertBefore(p, elInfo.firstChild);
+		if (elInfo.childElementCount > 10){
+			elInfo.removeChild(elInfo.lastChild);
+		}
+	};
+}
+
 function Tab(config){
 	var tabName = config.name;
+	var isVisible = false;
 	var tabLink = document.createElement("a");
 	var tabHeader = document.createElement("li");
 	var tabContent = document.createElement("div");
 	tabLink.setAttribute("href", "#");
 	tabLink.setAttribute("class", "tablinks");
 	tabLink.innerHTML = tabName;
-	tabLink.onclick = function(){layout.tabClick(this.innerHTML);};
+	tabLink.onclick = function(){engine.getLayout().tabClick(this.innerHTML);};
 	tabHeader.appendChild(tabLink);
 	tabContent.setAttribute("class", "tabcontent");
 	tabContent.style.display = "none";
@@ -81,10 +104,14 @@ function Tab(config){
 		tabLink.setAttribute("class", "tablinks");
 	};
 	this.appendTo = function(parentHeader, parentContent){
+		isVisible = true;
 		parentHeader.appendChild(tabHeader);
 		parentContent.appendChild(tabContent);
 	};
 	this.appendAction = function(actionBtn){
+		if (!isVisible){
+			engine.getLayout().revealTab(tabName);
+		}
 		tabContent.appendChild(actionBtn);
 	}
 }
@@ -92,10 +119,9 @@ function Tab(config){
 function ProgressButton(btnConfig, _tab){
 	// Properties
 	var tab = _tab;
-	var name = btnConfig.name;
-	var maxTime = btnConfig.time;
-	var needs = btnConfig.needs;
-	var produces = btnConfig.produces;
+	var enabled = false;
+	var isVisible = false;
+	var btnParams = btnConfig;
 	// Doms
 	var content = document.createElement("div");
 	var btn = document.createElement("button");
@@ -110,33 +136,51 @@ function ProgressButton(btnConfig, _tab){
 	pBarContent.appendChild(pBar);
 	btn.setAttribute("type", "button");
 	btn.setAttribute("class", "btnStyle");
-	btn.innerHTML = name;
-	btn.onclick = function(){layout.buttonClick(this.innerHTML);};
+	btn.title = btnParams.hint;
+	btn.innerHTML = btnParams.name;
+	btn.onclick = function(){engine.getLayout().buttonClick(this.innerHTML);};
 	content.setAttribute("class", "progressButton");
 	content.appendChild(btn);
 	content.appendChild(pBarContent);
-	this.isVisible = false;
 	this.revealButton = function(){
+		enabled = true;
 		this.isVisible = true;
 		tab.appendAction(content);
 	};
+	this.enableButton = function(){
+		enabled = true;
+	};
+	this.setHint = function(hint){
+		btn.title = hint;
+	};
+	this.updateParameters = function(btnUpdate){
+		for (var attr in btnUpdate){
+			btnParams[attr] = btnUpdate[attr];
+		}
+		btn.title = btnParams.hint;
+	};
 	this.updateStatus = function(){
-		if (inProgress){
+		if (!enabled || inProgress){
 			return;
 		}
+		var inventory = engine.getInventory();
 		var fulfillNeeds = true;
-		for (i in needs){
-			if (!inventory.canFulfillNeed(needs[i].item, needs[i].amount)){
+		for (i in btnParams.needs){
+			if (!inventory.canFulfillNeed(btnParams.needs[i].item, btnParams.needs[i].amount)){
 				fulfillNeeds = false;
 			}
 		}
-		var canProduce = produces.length == 0;
-		for (i in produces){
-			if (inventory.canProduceMore(produces[i].item)){
+		var canProduce = btnParams.produces.length == 0;
+		for (i in btnParams.produces){
+			if (inventory.canProduceMore(btnParams.produces[i].item)){
 				canProduce = true;
 			}
 		}
 		if (canProduce && fulfillNeeds){
+			if (!isVisible){
+				isVisible = true;
+				tab.appendAction(content);
+			}
 			btn.disabled = false;
 			btn.setAttribute("class", "btnStyle");
 		}else{			
@@ -145,9 +189,13 @@ function ProgressButton(btnConfig, _tab){
 		}
 	};
 	this.startProgress = function(_handler){
+		var inventory = engine.getInventory();
+		if (btnParams.name === "Explore") {
+			engine.startExplore();
+		}
 		inProgress = true;
-		for (i in needs){
-			inventory.decreaseItem(needs[i].item, needs[i].amount);
+		for (i in btnParams.needs){
+			inventory.decreaseItem(btnParams.needs[i].item, btnParams.needs[i].amount);
 		}
 		inventory.updateInventory();
 		handler = _handler;
@@ -157,16 +205,22 @@ function ProgressButton(btnConfig, _tab){
 	};
 	this.isReady = function(interval){
 		progress += interval;
-		pBar.style.width = "" + (progress / maxTime * 100) + "%";
-		if (progress > maxTime){
+		pBar.style.width = "" + (progress / btnParams.time * 100) + "%";
+		if (progress > btnParams.time){
 			return true;
 		}
 		return false;
 	};
 	this.finishProgress = function(){
+		var inventory = engine.getInventory();
+		if (btnParams.name === "Explore") {
+			engine.finishExplore();
+		}
 		inProgress = false;
-		for (i in produces){
-			inventory.increaseItem(produces[i].item, produces[i].amount);
+		for (i in btnParams.produces){
+			inventory.increaseItem(btnParams.produces[i].item, btnParams.produces[i].amount);
+			var info = "You have produced " + btnParams.produces[i].amount + " " + btnParams.produces[i].item + ".";
+			engine.getInformation().logInformation(info, "simple");
 		}
 		inventory.updateInventory();
 		pBar.style.width = "0%";
@@ -177,16 +231,18 @@ function ProgressButton(btnConfig, _tab){
 function Inventory(){
 	var elInventory = document.getElementById("inventory");
 	var inventory = {
-		Level:  {amount: 0, max:100, enabled: true},
-		Berry:  {amount: 0, max:100, enabled: true},
-		Energy: {amount: 10, max:100, enabled: true},
-		Wood:   {amount: 0, max:100, enabled: true}
+		Berry:  {amount: 0, max:100, enabled: false},
+		Energy: {amount: 0, max:100, enabled: false},
+		Wood:   {amount: 0, max:100, enabled: false}
 	};
+	this.enableItem = function(item){
+		inventory[item].enabled = true;
+	}
 	this.increaseItem = function(item, amount){
 		inventory[item].amount = Math.min(inventory[item].max, inventory[item].amount + amount);
 	};
 	this.decreaseItem = function(item, amount){
-		inventory[item].amount -= amount;
+		inventory[item].amount = Math.max(0, inventory[item].amount - amount);
 	};
 	this.canFulfillNeed = function(item, amount){
 		return inventory[item].amount >= amount;
@@ -202,11 +258,11 @@ function Inventory(){
 			}
 		}
 		elInventory.innerHTML = invText;
-		layout.updateStatus();
+		engine.getLayout().updateStatus();
 	};
 }
 
-function GameConfig(){
+function Engine(){
 	var config = {
 		tabs: [
 		{
@@ -214,6 +270,7 @@ function GameConfig(){
 			buttons: [
 			{
 				name: "Explore",
+				hint: "Start your journey",
 				time: 1000,
 				needs: [],
 				produces: []
@@ -224,43 +281,108 @@ function GameConfig(){
 			buttons: [
 			{
 				name: "Search berry",
+				hint: "Gather 1 berry",
 				time: 1000,
 				needs: [],
 				produces: [{amount:1, item:"Berry"}]
 			},{
 				name: "Search wood",
+				hint: "Gather 1 wood",
 				time: 2000,
 				needs: [{amount:1, item:"Energy"}],
 				produces: [{amount:1, item:"Wood"}]
-			}
-			]
+			}]
+		},{
+			name: "Energy",
+			buttons: [
+			{
+				name: "Eat berry",
+				hint: "Eat 1 berry for 1 energy",
+				time: 500,
+				needs: [{amount:1, item:"Berry"}],
+				produces: [{amount:1, item:"Energy"}]
+			}]
 		}
 		]
 	};
-	this.getConfig = function(){
-		return config;
+	var levels = {
+		1: {
+			exploreBeginMsg: "Samu took his first steps.",
+			exploreEndMsg: "He realized it is just the beginning of a long journey!",
+			updateButtons:[{name: "Explore", time: "4000", hint: ""}],
+			nextLevel:3
+		},
+		3: {
+			exploreBeginMsg: "Samu started to feel hungry.",
+			exploreEndMsg: "Finally, he found a bush full of tasty looking berries.",
+			enableItems:["Berry"],
+			enableButtons:["Search berry"],
+			updateButtons:[{name: "Explore", time: "8000", needs:[{amount:5, item:"Berry"}]}],
+			nextLevel:4
+		},
+		4: {
+			exploreBeginMsg: "He felt strange, like he does the same thing over and over.",
+			exploreEndMsg: "Yes - he realized - I am in an incomplete game. Damn it urghghghgh.",
+			updateButtons:[{name: "Explore", time: "16000", needs: [], hint: "Game is under construction"}],
+			enableButtons:["Search wood", "Eat berry"],
+			enableItems:["Wood", "Energy"],
+			nextLevel:4
+		}
+	};
+	var currentLevel = 1;
+	var inventory = new Inventory();
+	var information = new Information();
+	var layout = new Layout();
+	this.startGame = function(){
+		layout.createLayout(config);
+		layout.revealTab("World", true);
+		layout.revealButton("Explore");
+		information.logInformation("Samu is awaken!", "bold");
+	};
+	this.startExplore = function(){
+		var level = levels[currentLevel];
+		information.logInformation(level.exploreBeginMsg, "bold");
+	};
+	this.finishExplore = function(){
+		var level = levels[currentLevel];
+		information.logInformation(level.exploreEndMsg, "bold");
+		layout.setHint(level.exploreHint);
+		if (level.updateButtons !== undefined){
+			for (var i in level.updateButtons){
+				layout.updateButton(level.updateButtons[i]);
+			}
+		}
+		if (level.enableButtons !== undefined){
+			for (var i in level.enableButtons){
+				layout.enableButton(level.enableButtons[i]);
+			}
+		}
+		if (level.enableItems !== undefined){
+			for (var i in level.enableItems){
+				inventory.enableItem(level.enableItems[i]);
+			}
+		}
+		currentLevel = levels[currentLevel].nextLevel;
+	};
+	this.getInventory = function(){
+		return inventory;
+	};
+	this.getLayout = function(){
+		return layout;
+	};
+	this.getInformation = function(){
+		return information;
 	};
 }
 
-var layout;
-var config = new GameConfig();
-var debug;
-var inventory;
-$(function(){
-	inventory = new Inventory();
-	layout = new Layout();
-	layout.createLayout(config.getConfig());
-	debug = layout.debug();
-	layout.revealTab("World", true);
-	layout.revealTab("Gather");
-	layout.revealButton("Search wood");
-	layout.revealButton("Search berry");
-	layout.revealButton("Explore");
-})
 //////////////////////////////////////
 /////      Initialization       //////
 //////////////////////////////////////
-
-
-
+// TODO: Remove debug feauture
+var debug;
+var engine;
+$(function(){
+	engine = new Engine();
+	engine.startGame();
+})
 
