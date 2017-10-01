@@ -11,6 +11,7 @@ function Layout(){
 	this.createLayout = function(config){
 		for (tab in config.tabs){
 			tabs[config.tabs[tab].name] = new Tab(config.tabs[tab]);
+			tabs[config.tabs[tab].name].appendTo(elTabHeader, elTabContent);
 			for (btn in config.tabs[tab].buttons){
 				btns[config.tabs[tab].buttons[btn].name] = new ProgressButton(
 					config.tabs[tab].buttons[btn],
@@ -19,10 +20,10 @@ function Layout(){
 		}
 	};
 	this.revealTab = function(tabName, activate = false){
+		tabs[tabName].revealHeader();
 		if (activate){
 			this.tabClick(tabName);
 		}
-		tabs[tabName].appendTo(elTabHeader, elTabContent);
 	};
 	this.revealButton = function(btnName){
 		btns[btnName].revealButton();
@@ -74,9 +75,9 @@ function Information(){
 	this.logInformation = function(message, style){
 		var p = document.createElement("p");
 		p.innerHTML = message;
-		p.style.class = style;
+		p.setAttribute("class", style);
 		elInfo.insertBefore(p, elInfo.firstChild);
-		if (elInfo.childElementCount > 10){
+		if (elInfo.childElementCount > 50){
 			elInfo.removeChild(elInfo.lastChild);
 		}
 	};
@@ -93,25 +94,28 @@ function Tab(config){
 	tabLink.innerHTML = tabName;
 	tabLink.onclick = function(){engine.getLayout().tabClick(this.innerHTML);};
 	tabHeader.appendChild(tabLink);
+	tabHeader.style.display = "none";
 	tabContent.setAttribute("class", "tabcontent");
 	tabContent.style.display = "none";
+	this.getName = function(){
+		return tabName;
+	};
+	this.revealHeader = function(){
+		tabHeader.style.display = "block";
+	};
 	this.activate = function(){
 		tabContent.style.display = "block";
-		tabLink.setAttribute("class", "tablinks active");
+		tabLink.setAttribute("class", "active");
 	};
 	this.deactivate = function(){
 		tabContent.style.display = "none";
-		tabLink.setAttribute("class", "tablinks");
+		tabLink.setAttribute("class", "");
 	};
 	this.appendTo = function(parentHeader, parentContent){
-		isVisible = true;
 		parentHeader.appendChild(tabHeader);
 		parentContent.appendChild(tabContent);
 	};
 	this.appendAction = function(actionBtn){
-		if (!isVisible){
-			engine.getLayout().revealTab(tabName);
-		}
 		tabContent.appendChild(actionBtn);
 	}
 }
@@ -142,10 +146,12 @@ function ProgressButton(btnConfig, _tab){
 	content.setAttribute("class", "progressButton");
 	content.appendChild(btn);
 	content.appendChild(pBarContent);
+	content.style.display = "none";
+	tab.appendAction(content);
 	this.revealButton = function(){
 		enabled = true;
 		this.isVisible = true;
-		tab.appendAction(content);
+		content.style.display = "block";
 	};
 	this.enableButton = function(){
 		enabled = true;
@@ -179,7 +185,8 @@ function ProgressButton(btnConfig, _tab){
 		if (canProduce && fulfillNeeds){
 			if (!isVisible){
 				isVisible = true;
-				tab.appendAction(content);
+				content.style.display = "block";
+				engine.getLayout().revealTab(tab.getName());
 			}
 			btn.disabled = false;
 			btn.setAttribute("class", "btnStyle");
@@ -235,8 +242,12 @@ function Inventory(){
 		Energy: {amount: 0, max:100, enabled: false},
 		Wood:   {amount: 0, max:100, enabled: false}
 	};
-	this.enableItem = function(item){
-		inventory[item].enabled = true;
+	this.updateItem = function(item){
+		for (var attr in item){
+			if (attr !== "name"){
+				inventory[item.name][attr] = item[attr];
+			}
+		}
 	}
 	this.increaseItem = function(item, amount){
 		inventory[item].amount = Math.min(inventory[item].max, inventory[item].amount + amount);
@@ -281,9 +292,15 @@ function Engine(){
 			buttons: [
 			{
 				name: "Search berry",
-				hint: "Gather 1 berry",
+				hint: "Produce 1 berry",
 				time: 1000,
 				needs: [],
+				produces: [{amount:1, item:"Berry"}]
+			},{
+				name: "Search 10 berries",
+				hint: "Produce 10 berries",
+				time: 10000,
+				needs: [{amount:2, item:"Energy"}],
 				produces: [{amount:1, item:"Berry"}]
 			},{
 				name: "Search wood",
@@ -315,7 +332,7 @@ function Engine(){
 		3: {
 			exploreBeginMsg: "Samu started to feel hungry.",
 			exploreEndMsg: "Finally, he found a bush full of tasty looking berries.",
-			enableItems:["Berry"],
+			updateItems:[{name: "Berry", enabled: true}],
 			enableButtons:["Search berry"],
 			updateButtons:[{name: "Explore", time: "8000", needs:[{amount:5, item:"Berry"}]}],
 			nextLevel:4
@@ -324,8 +341,8 @@ function Engine(){
 			exploreBeginMsg: "He felt strange, like he does the same thing over and over.",
 			exploreEndMsg: "Yes - he realized - I am in an incomplete game. Damn it urghghghgh.",
 			updateButtons:[{name: "Explore", time: "16000", needs: [], hint: "Game is under construction"}],
-			enableButtons:["Search wood", "Eat berry"],
-			enableItems:["Wood", "Energy"],
+			updateItems:[{name: "Berry", max: 10}, {name: "Wood", enabled: true}, {name: "Energy", enabled: true}],
+			enableButtons:["Search wood", "Eat berry", "Search 10 berries"],
 			nextLevel:4
 		}
 	};
@@ -357,9 +374,9 @@ function Engine(){
 				layout.enableButton(level.enableButtons[i]);
 			}
 		}
-		if (level.enableItems !== undefined){
-			for (var i in level.enableItems){
-				inventory.enableItem(level.enableItems[i]);
+		if (level.updateItems !== undefined){
+			for (var i in level.updateItems){
+				inventory.updateItem(level.updateItems[i]);
 			}
 		}
 		currentLevel = levels[currentLevel].nextLevel;
