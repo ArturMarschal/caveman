@@ -47,7 +47,8 @@ function Layout(){
 	this.buttonClick = function(btnName){
 		var btn = btns[btnName];
 		var layout = engine.getLayout();
-		var handler = setInterval(layout.doProgress, interval, btn);
+		// TODO: remove time manipulation
+		var handler = setInterval(layout.doProgress, interval*0.05, btn);
 		btn.startProgress(handler);
 	};
 	this.setHint = function(hint){
@@ -73,12 +74,24 @@ function Layout(){
 function Information(){
 	var elInfo = document.getElementById("info");
 	this.logInformation = function(message, style){
-		var p = document.createElement("p");
-		p.innerHTML = message;
-		p.setAttribute("class", style);
-		elInfo.insertBefore(p, elInfo.firstChild);
-		if (elInfo.childElementCount > 50){
-			elInfo.removeChild(elInfo.lastChild);
+		if (elInfo.firstChild !== null && elInfo.firstChild.innerHTML.includes(message)){
+			if (elInfo.firstChild.innerHTML.includes(message + ' x')){
+				var parts = elInfo.firstChild.innerHTML.split(' x');
+				var num = parseInt(parts[parts.length-1]) + 1;
+				elInfo.firstChild.innerHTML = message + " x" + num;
+			}
+			else{
+				elInfo.firstChild.innerHTML += " x2";
+			}
+		}
+		else {
+			var p = document.createElement("p");
+			p.innerHTML = message;
+			p.setAttribute("class", style);
+			elInfo.insertBefore(p, elInfo.firstChild);
+			if (elInfo.childElementCount > 50){
+				elInfo.removeChild(elInfo.lastChild);
+			}
 		}
 	};
 }
@@ -220,14 +233,14 @@ function ProgressButton(btnConfig, _tab){
 	};
 	this.finishProgress = function(){
 		var inventory = engine.getInventory();
-		if (btnParams.name === "Explore") {
-			engine.finishExplore();
-		}
 		inProgress = false;
 		for (i in btnParams.produces){
 			inventory.increaseItem(btnParams.produces[i].item, btnParams.produces[i].amount);
 			var info = "You have produced " + btnParams.produces[i].amount + " " + btnParams.produces[i].item + ".";
 			engine.getInformation().logInformation(info, "simple");
+		}
+		if (btnParams.name === "Explore") {
+			engine.finishExplore();
 		}
 		inventory.updateInventory();
 		pBar.style.width = "0%";
@@ -238,9 +251,15 @@ function ProgressButton(btnConfig, _tab){
 function Inventory(){
 	var elInventory = document.getElementById("inventory");
 	var inventory = {
-		Berry:  {amount: 0, max:100, enabled: false},
-		Energy: {amount: 0, max:100, enabled: false},
-		Wood:   {amount: 0, max:100, enabled: false}
+		'Berry':  		{amount: 0, max: 10, enabled: false},
+		'Energy': 		{amount: 0, max: 10, enabled: false},
+		'Wood':   		{amount: 0, max: 10, enabled: false},
+		'Stone':  		{amount: 0, max: 10, enabled: false},
+		'Leaf':   		{amount: 0, max: 10, enabled: false},
+		'Rope':   		{amount: 0, max: 10, enabled: false},
+		'Poor Axe': 	{amount: 0, max:  2, enabled: false},
+		'Fire':			{amount: 0, max:  1, enabled: false},
+		'Clue':			{amount: 0, max: 10, enabled: false}
 	};
 	this.updateItem = function(item){
 		for (var attr in item){
@@ -300,14 +319,32 @@ function Engine(){
 				name: "Search 10 berries",
 				hint: "Produce 10 berries",
 				time: 10000,
-				needs: [{amount:2, item:"Energy"}],
-				produces: [{amount:1, item:"Berry"}]
+				needs: [{amount:5, item:"Energy"}],
+				produces: [{amount:10, item:"Berry"}]
 			},{
 				name: "Search wood",
 				hint: "Gather 1 wood",
 				time: 2000,
 				needs: [{amount:1, item:"Energy"}],
 				produces: [{amount:1, item:"Wood"}]
+			},{
+				name: "Search stone",
+				hint: "Gather 1 stone",
+				time: 3000,
+				needs: [{amount:5, item:"Energy"}],
+				produces: [{amount:1, item:"Stone"}]
+			},{
+				name: "Search leaf",
+				hint: "Gather 1 leaf",
+				time: 1000,
+				needs: [{amount:5, item:"Energy"}],
+				produces: [{amount:1, item:"Leaf"}]
+			},{
+				name: "Search clue",
+				hint: "Gather 1 clue",
+				time: 2000,
+				needs: [{amount:5, item:"Energy"}],
+				produces: [{amount:1, item:"Clue"}]
 			}]
 		},{
 			name: "Energy",
@@ -318,8 +355,48 @@ function Engine(){
 				time: 500,
 				needs: [{amount:1, item:"Berry"}],
 				produces: [{amount:1, item:"Energy"}]
+			},{
+				name: "Eat berries",
+				hint: "Eat 10 berries for 10 energy",
+				time: 500,
+				needs: [{amount:10, item:"Berry"}],
+				produces: [{amount:10, item:"Energy"}]
 			}]
-		}
+		},{
+			name: "Craft",
+			buttons: [
+			{
+				name: "Craft rope",
+				hint: "?",
+				time: 2000,
+				needs: [{amount:1, item:"Energy"}, {amount:1, item:"Leaf"}],
+				//TODO: 10-10
+				produces: [{amount:1, item:"Rope"}]
+			},{
+				name: "Craft poor axe",
+				hint: "?",
+				time: 2000,
+				needs: [{amount:1, item:"Energy"}, {amount:1, item:"Rope"}, {amount:1, item:"Stone"}, {amount:1, item:"Wood"}],
+				//TODO: 1
+				produces: [{amount:1, item:"Poor Axe"}]
+			}]
+		}/*,{
+			name: "Hunting",
+			buttons: [
+			{
+				name: "Craft rope",
+				hint: "?",
+				time: 2000,
+				needs: [{amount:10, item:"Energy"}, {amount:10, item:"Leaf"}],
+				produces: [{amount:1, item:"Rope"}]
+			},{
+				name: "Craft poor axe",
+				hint: "?",
+				time: 2000,
+				needs: [{amount:10, item:"Energy"}, {amount:1, item:"Rope"}, {amount:1, item:"Stone"}, {amount:1, item:"Wood"}],
+				produces: [{amount:1, item:"Poor Axe"}]
+			}]
+		}*/
 		]
 	};
 	var levels = {
@@ -338,12 +415,46 @@ function Engine(){
 			nextLevel:4
 		},
 		4: {
-			exploreBeginMsg: "He felt strange, like he does the same thing over and over.",
+			exploreBeginMsg: "He felt strange, like he does the same thing over and over again.",
 			exploreEndMsg: "Yes - he realized - I am in an incomplete game. Damn it urghghghgh.",
-			updateButtons:[{name: "Explore", time: "16000", needs: [], hint: "Game is under construction"}],
-			updateItems:[{name: "Berry", max: 10}, {name: "Wood", enabled: true}, {name: "Energy", enabled: true}],
+			updateButtons:[{name: "Explore", time: "12000", needs:[{amount:10, item:"Energy"}], hint: "A lot of Energies needed"}],
+			updateItems:[{name: "Berry", max: 50}, {name: "Wood", enabled: true}, {name: "Energy", enabled: true}],
 			enableButtons:["Search wood", "Eat berry", "Search 10 berries"],
-			nextLevel:4
+			nextLevel:5
+		},
+		5: {
+			exploreBeginMsg: "?",
+			exploreEndMsg: "?",
+			updateButtons:[{name: "Explore", time: "16000", needs: [{amount:2, item:"Stone"}, {amount: 2, item:"Leaf"}, {amount: 5, item:"Wood"},
+				{amount:10, item:"Energy"}],
+				produces: [{amount: 1, item: "Fire"}], hint: "2 Stones, 2 Leaves, 5 Woods needed for make a fire and be able to see in the Dark Woods"}],
+			updateItems:[{name: "Stone", enabled: true}, {name: "Leaf", enabled: true}],
+			enableButtons:["Search stone", "Search leaf"],
+			nextLevel:6
+		},
+		6: {
+			exploreBeginMsg: "?",
+			exploreEndMsg: "?",
+			updateButtons:[{name: "Explore", time: "20000", needs: [{amount:1, item:"Poor Axe"}], produces: [], hint: "Craft a Poor Axe to go deeper in to the woods"}],
+			updateItems:[{name: "Poor Axe", enabled: true}, {name: "Rope", enabled: true}, {name: "Fire", enabled: true}],
+			enableButtons:["Craft poor axe", "Craft rope"],
+			nextLevel:7
+		},
+		7: {
+			exploreBeginMsg: "?",
+			exploreEndMsg: "?",
+			updateButtons:[{name: "Explore", time: "30000", needs: [{amount:5, item:"Clue"}, {amount:25, item:"Energy"}], hint: "Get 5 animal Clues and 25 Energies"}],
+			updateItems:[{name: "Energy", max: 50}, {name: "Clue", enabled: true}],
+			enableButtons:["Eat berries", "Search clue"],
+			nextLevel:8
+		},
+		8: {
+			exploreBeginMsg: "?",
+			exploreEndMsg: "?",
+			updateButtons:[{name: "Explore", time: "50000", needs: [{amount:2, item:"Poor Axe"}], hint: "Craft 2 Poor Axes to go deeper in to the woods"}],
+			updateItems:[{name: "Poor Axe", enabled: true}, {name: "Rope", enabled: true}, {name: "Fire", enabled: true}],
+			enableButtons:["Craft poor axe", "Craft rope"],
+			nextLevel:9
 		}
 	};
 	var currentLevel = 1;
@@ -390,6 +501,25 @@ function Engine(){
 	this.getInformation = function(){
 		return information;
 	};
+	// TODO: remove debug function
+	this.setLevel = function(newLevel){
+		var levelExists = false;
+		for (var i in levels){
+			if (levels[i].nextLevel == newLevel){
+				levelExists = true;
+				break;
+			}
+		}
+		if (levelExists) {
+			while(currentLevel!=newLevel){
+				this.startExplore();
+				this.finishExplore();
+			}
+			inventory.updateInventory();
+			layout.updateStatus();
+		}
+			
+	}
 }
 
 //////////////////////////////////////
@@ -402,4 +532,6 @@ $(function(){
 	engine = new Engine();
 	engine.startGame();
 })
+//TODO: ismétlődő tevékenység egyszerűsítése x15 pl
+//TODO: SKILL OPTION
 

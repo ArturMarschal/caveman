@@ -17,6 +17,7 @@ div.info{
 	box-sizing: border-box;
 	transition: 1s;
 	float: left;
+	overflow: hidden;
 }
 
 .fader{
